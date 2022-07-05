@@ -1,4 +1,3 @@
-import sys
 import numpy as np
 
 
@@ -15,6 +14,9 @@ class board():
         self.board[[5,4],[4,5]] = board.BLACK     #黒い駒の配置
         self.number_W = 2                         #白い駒の数
         self.number_B = 2                         #黒い駒の数
+
+        return None
+    
     
     @classmethod
     def _is_color(cls, color) -> bool:
@@ -30,6 +32,7 @@ class board():
 
         return True
     
+
     @classmethod
     def _is_place(cls, place) -> bool:
         """placeが盤面上の座標であるか判定"""
@@ -44,10 +47,11 @@ class board():
             raise IndexError("Place out of range.")
         
         return True
+    
 
 
-    def can_put(self, place, color) -> bool:
-        """駒を置けるかを判定
+    def get_change_plases(self, place, color) -> list:
+        """placeにコマを置いたときひっくり返る座標のlistを返す
 
         Parameters
         ----------
@@ -58,10 +62,34 @@ class board():
 
         Returns
         -------
-        bool
-            設置可能かどうか
+        list
+            ひっくり返る座標のlist
         """
 
         board._is_color(color)
         board._is_place(place)
-        return True
+
+        if self.board[place] != 0:
+            return []
+
+        change_plases = []
+        for direction in [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1)]:
+            change_plases_ = []
+            search_place = place
+            while True:
+                search_place = (search_place[0] + direction[0], search_place[1] + direction[1])
+            
+                if not(0 <= search_place[0] <= 7 and 0 <= search_place[1] <= 7) or self.board[search_place] == 0:
+                    change_plases_ = []
+                    break
+
+                if self.board[search_place] == color:
+                    break
+
+                if self.board[search_place] != color:
+                    change_plases_.append(search_place)
+            
+            change_plases += change_plases_
+
+
+        return change_plases
