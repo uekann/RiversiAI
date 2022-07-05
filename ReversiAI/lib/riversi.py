@@ -10,14 +10,14 @@ class board():
     def __init__(self) -> None:
         """コンストラクタ"""
         self.board = np.zeros((8,8))              #盤面の作成
-        self.board[[4,5],[4,5]] = board.WHITE     #白い駒の配置
-        self.board[[5,4],[4,5]] = board.BLACK     #黒い駒の配置
+        self.board[[3,4],[3,4]] = board.WHITE     #白い駒の配置
+        self.board[[4,3],[3,4]] = board.BLACK     #黒い駒の配置
         self.number_W = 2                         #白い駒の数
         self.number_B = 2                         #黒い駒の数
 
         return None
     
-    
+
     @classmethod
     def _is_color(cls, color) -> bool:
         """渡された値がWHITEかBLACKのいずれかであるかを判定"""
@@ -47,6 +47,12 @@ class board():
             raise IndexError("Place out of range.")
         
         return True
+    
+
+    @classmethod
+    def _turn_color(cls, color) -> int:
+        """渡された色と反対の色を渡す"""
+        return board.WHITE if color == board.BLACK else board.BLACK
     
 
 
@@ -93,3 +99,44 @@ class board():
 
 
         return change_plases
+    
+    def put(self, place, color) -> bool:
+        """コマを置く
+
+        Parameters
+        ----------
+        place : tuple_
+            置く座標
+        color : int
+            置く色
+
+        Returns
+        -------
+        bool
+            実行結果
+        """
+
+        board._is_color(color)
+        board._is_place(place)
+
+        change_places = self.get_change_plases(place, color)
+
+        if change_places == []:
+            raise ValueError("You cannot place a piece there.")
+            return False
+        
+        for change_place in change_places:
+            self.board[change_place] = color
+            
+        self.board[place] = color
+        return True
+
+if __name__ == "__main__":
+    bd = board()
+    color = board.WHITE
+
+    while True:
+        print(bd.board)
+        point = tuple(map(int, input().split()))
+        bd.put(point,color)
+        color = board._turn_color(color)
