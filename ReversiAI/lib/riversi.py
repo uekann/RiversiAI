@@ -13,6 +13,7 @@ class board():
         self.board[[3,4],[3,4]] = board.WHITE     #白い駒の配置
         self.board[[4,3],[3,4]] = board.BLACK     #黒い駒の配置
         self.numbers = {board.WHITE : 2, board.BLACK : 2}  # 駒数の初期化
+        self.save_data = [{"board":self.board, "numbers":self.numbers}]
     
     @classmethod
     def _is_color(cls, color) -> None:
@@ -42,9 +43,26 @@ class board():
     
 
     @classmethod
-    def _turn_color(cls, color) -> int:
+    def turn_color(cls, color) -> int:
         """渡された色と反対の色を渡す"""
         return board.WHITE if color == board.BLACK else board.BLACK
+    
+    
+    def save(self) -> int:
+        """盤面の情報を保存し、セーブデータのインデックスを返す"""
+        self.save_data.append({{"board":self.board, "numbers":self.numbers}})
+        return len(self.save_data) - 1
+    
+
+    def load_save_data(self, idx=None) -> int:
+        """保存したセーブデータを読み込み、読み込んだデータのインデックスを返す。"""
+        if idx == None:
+            idx = -1
+        
+        self.board = self.save_data[idx]["board"]
+        self.numbers = self.save_data[idx]["numbers"]
+
+        return idx if idx >= 0 else len(self.save_data) + idx
     
 
 
@@ -169,4 +187,4 @@ if __name__ == "__main__":
     while True:
         print(bd)
         bd.put(tuple(map(int, input("put:").split())), color)
-        color = board._turn_color(color)
+        color = board.turn_color(color)
