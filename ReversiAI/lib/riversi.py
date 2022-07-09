@@ -13,7 +13,6 @@ class board():
         self.board[[3,4],[3,4]] = board.WHITE     #白い駒の配置
         self.board[[4,3],[3,4]] = board.BLACK     #黒い駒の配置
         self.numbers = {board.WHITE : 2, board.BLACK : 2}  # 駒数の初期化
-        self.save_data = [{"board":self.board, "numbers":self.numbers}]
     
     @classmethod
     def _is_color(cls, color) -> None:
@@ -41,6 +40,12 @@ class board():
         if not(0 <= place[0] <= 7 and 0 <= place[1] <= 7):
             raise IndexError("Place out of range.")
     
+    @classmethod
+    def _is_board(cls, bd) -> None:
+        """bdがboardのインスタンスであるかを判定"""
+        if not isinstance(bd, board):
+            raise TypeError(f"{bd} is not instace of board")
+    
 
     @classmethod
     def turn_color(cls, color) -> int:
@@ -48,29 +53,14 @@ class board():
         return board.WHITE if color == board.BLACK else board.BLACK
     
     
-    def save(self) -> int:
-        """盤面の情報を保存し、セーブデータのインデックスを返す"""
-        self.save_data.append({{"board":self.board, "numbers":self.numbers}})
-        return len(self.save_data) - 1
     
-
-    def load_save_data(self, idx=None) -> int:
-        """保存したセーブデータを読み込み、読み込んだデータのインデックスを返す。"""
-        if idx == None:
-            idx = -1
-        
-        self.board = self.save_data[idx]["board"]
-        self.numbers = self.save_data[idx]["numbers"]
-
-        return idx if idx >= 0 else len(self.save_data) + idx
-    
-
-
-    def get_change_plases(self, place, color) -> list:
+    def get_change_places(bd, place, color) -> list:
         """placeにコマを置いたときひっくり返る座標のlistを返す
 
         Parameters
         ----------
+        bd : board
+            置く盤面。インスタンスから呼び出すとselfになる。
         place : tuple
             駒を置きたい場所
         color : int
@@ -82,10 +72,11 @@ class board():
             ひっくり返る座標のlist
         """
 
+        board._is_board(bd)
         board._is_color(color)
         board._is_place(place)
 
-        if self.board[place] != 0:  # 既に置かれていたら[]を返す
+        if bd.board[place] != 0:  # 既に置かれていたら[]を返す
             return []
 
         change_plases = []    # ひっくり返る座標のリスト
@@ -96,14 +87,14 @@ class board():
             while True:
                 search_place = (search_place[0] + direction[0], search_place[1] + direction[1])  # 探索場所の更新
             
-                if not(0 <= search_place[0] <= 7 and 0 <= search_place[1] <= 7) or self.board[search_place] == 0:  # 行き止まりなら[]を返す
+                if not(0 <= search_place[0] <= 7 and 0 <= search_place[1] <= 7) or bd.board[search_place] == 0:  # 行き止まりなら[]を返す
                     change_plases_ = []
                     break
 
-                if self.board[search_place] == color:     # colorに出逢ったら終了
+                if bd.board[search_place] == color:     # colorに出逢ったら終了
                     break
 
-                if self.board[search_place] != color:     # colorの反対の色ならその座標を保存して探索を続ける
+                if bd.board[search_place] != color:     # colorの反対の色ならその座標を保存して探索を続ける
                     change_plases_.append(search_place)
             
             change_plases += change_plases_       # 得られた座標をまとめてchange_plasesに保存
@@ -111,44 +102,52 @@ class board():
         return change_plases
     
 
-    def put(self, place, color) -> None:
+
+    def put(bd, place, color) -> 'board':
         """コマを置く
 
         Parameters
         ----------
-        place : tuple_
+        bd : board
+            置く盤面
+        place : tuple
             置く座標
         color : int
             置く色
 
         Returns
         -------
-        bool
-            実行結果
+        board
+            おいた後の盤面
         """
 
+        board._is_board(bd)
         board._is_color(color)
         board._is_place(place)
 
-        change_places = self.get_change_plases(place, color)
+        change_places = bd.get_change_places(place, color)
 
         if change_places == []:         # ひっくり返る場所がなければ置けない(例外を出力)
             raise ValueError("You cannot place a piece there.")
         
         for change_place in change_places:
-            self.board[change_place] = color  # 色の変更
+            bd.board[change_place] = color  # 色の変更
 
-        self.board[place] = color     # 駒を置く
+        bd.board[place] = color     # 駒を置く
 
-        self.numbers[color] += 1
-        self.numbers[board._turn_color(color)] -= len(change_places)  # 駒数の更新
+        bd.numbers[color] += 1
+        bd.numbers[board.turn_color(color)] -= len(change_places)  # 駒数の更新
+
+        return bd
     
     
-    def get_places_to_put(self, color) -> list:
+    def get_places_to_put(bd, color) -> list:
         """置ける場所の取得
 
         Parameters
         ----------
+        bd : board
+            置く盤面
         color : int
             置く色
 
@@ -158,13 +157,14 @@ class board():
             おける場所のリスト
         """
 
+        board._is_board(bd)
         board._is_color(color)
 
         places_to_put = []
     
         for i in range(8):
             for j in range(8):
-                if not self.get_change_plases((i, j), color) == []:
+                if not bd.get_change_places((i, j), color) == []:
                     places_to_put.append((i, j))
         
         return places_to_put
@@ -184,6 +184,8 @@ class board():
 if __name__ == "__main__":
     bd = board()
     color = board.BLACK
+
+    # print(board.get_change_places(bd, (5, 4), 2))
     while True:
         print(bd)
         bd.put(tuple(map(int, input("put:").split())), color)
