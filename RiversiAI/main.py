@@ -1,7 +1,7 @@
 from lib import Game
 from lib import Board
-from lib import HumanPlayer, AgentRandom
+from lib import CUIPlayer, AgentRandom
 
 if __name__ == "__main__":
-    game = Game(Board(), HumanPlayer(), AgentRandom())
+    game = Game(Board(), CUIPlayer(), AgentRandom())
     game.play()

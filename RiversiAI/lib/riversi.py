@@ -1,7 +1,7 @@
 from copy import deepcopy
 import numpy as np
 from functools import lru_cache
-from .tree import Tree
+from tree import Tree
 
 
 class Board:
@@ -507,13 +507,13 @@ class OwnBoard:
         self.update_board()   # 駒の更新
         if self.end_label == None:   # 終了していない時
             s = str(self._translate_to_own())
-            s += f"color : {self.color}   |   place to put : {self.get_place_to_put()}"   # 自身の色と置ける場所も出力
+            s += f"place to put : {self.get_place_to_put()}"   # 自身の色と置ける場所も出力
         elif self.end_label == 0.0:   # 敗北時
-            s = f"----------------------\n\You lose {self.common_board.numbers[Board.turn_color(self.color)]:02} - {self.common_board.numbers[self.color]:02}   \n----------------------"
+            s = f"----------------------\n   You lose {self.common_board.numbers[Board.turn_color(self.color)]:02} - {self.common_board.numbers[self.color]:02}   \n----------------------"
         elif self.end_label == 1.0:   # 勝利時
-            s = f"---------------------\nYou won {self.common_board.numbers[self.color]:02} - {self.common_board.numbers[Board.turn_color(self.color)]:02}   \n---------------------"
+            s = f"---------------------\n   You won {self.common_board.numbers[self.color]:02} - {self.common_board.numbers[Board.turn_color(self.color)]:02}   \n---------------------"
         else:   # 引き分け時
-            s = f"----------------------\n You drew {self.common_board.numbers[Board.turn_color[self.color]]:02} - {self.common_board.numbers[self.color]:02}   \n----------------------"
+            s = f"----------------------\n   You drew {self.common_board.numbers[Board.turn_color[self.color]]:02} - {self.common_board.numbers[self.color]:02}   \n----------------------"
         return s
     
 

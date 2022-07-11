@@ -1,3 +1,3 @@
 from .game import Game
 from .riversi import Board
-from .agent import AgentRandom, HumanPlayer
+from .agent import AgentRandom, CUIPlayer
