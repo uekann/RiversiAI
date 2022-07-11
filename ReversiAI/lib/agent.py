@@ -1,27 +1,31 @@
+from copy import deepcopy
 import random
 from abc import ABCMeta, abstractmethod
-from .riversi import Board
+from .riversi import Board, OwnBoard
 
 class Agent(metaclass=ABCMeta):
     """エージェントの基底クラス"""
 
-    def __init__(self, bd=None, color=None) -> None:
-        self.board = bd
-        self.color = color
+    def __init__(self, own_board : 'OwnBoard' = None) -> None:
+        """全Agentの抽象基底クラス。このクラスを継承したクラスは関数"action"を定義する必要がある
+
+        Parameters
+        ----------
+        own_board : OwnBoard, optional
+            自分視点の盤面。デフォルトはNone
+        """
+        self.own_board = own_board
     
-    def set_board(self, bd):
-        if not self.board == None:
-            raise Exception("You have alredy set the board")
+    def set_board(self, own_board):
+        if not self.own_board == None:
+            Exception("You alredy have your own board")
         
-        Board.is_board(bd)
-        self.board = bd
-    
-    def set_color(self, color):
-        if not self.color == None:
-            raise Exception("You have alredy set the board")
+        OwnBoard.is_own_board(own_board)
+        self.own_board = own_board
         
-        Board.is_color(color)
-        self.color = color
+    def change_own_board(self, own_board):
+        OwnBoard.is_own_board(own_board)
+        self.own_board = own_board
     
     @abstractmethod
     def action(self):
@@ -31,11 +35,11 @@ class Agent(metaclass=ABCMeta):
 class AgentRandom(Agent):
     """駒を置くことができる座標の一覧から、一様分布に従って行動を選択するAgent"""
 
-    def __init__(self, bd, color) -> None:
-        super().__init__(bd, color)
+    def __init__(self, own_board) -> None:
+        super(AgentRandom, self).__init__(own_board)
     
     def action(self):
-        actions = self.bd.get_places_to_put(self.color)
+        actions = self.own_board.get_place_to_put()
         self.bd.put(random.randint(0, len(actions)-1))
 
 class HumanPlayer(Agent):
@@ -45,5 +49,5 @@ class HumanPlayer(Agent):
         super().__init__(bd, color)
     
     def action(self):
-        
+
         return

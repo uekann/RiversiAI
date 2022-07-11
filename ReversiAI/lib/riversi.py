@@ -1,6 +1,7 @@
 from copy import deepcopy
 import numpy as np
 from functools import lru_cache
+from .tree import Tree
 
 
 class Board:
@@ -343,8 +344,17 @@ class Board:
 
         return s
     
+    def __eq__(self, bd : 'Board') -> bool:
+        try:
+            Board.is_board(bd)
+        except:
+            return False
+        
+        return (self.board==bd.board).all()
+
     
-class OwnBoard(Board):
+    
+class OwnBoard:
     """各Agentが保持する盤面"""
 
     def __init__(self, bd : 'Board', color : int) -> None:
@@ -358,14 +368,30 @@ class OwnBoard(Board):
         color : int
             自分の駒の色。Board.BLACKかBoard.WHITEである必要がある
         """
-        Board.is_board(bd)
         Board.is_color(color)
         self.color = color
 
-        super(OwnBoard, self).__init__(bd=bd, color_switch=False if self.color == Board.BLACK else True)   # 色の反転を行うかを指定し初期化。
+        self.board = Board(bd=bd, color_switch=False if self.color == Board.BLACK else True)   # 色の反転を行うかを指定し初期化。
         self.common_board = bd   # 相手と共有する盤面
 
         self.end_label = None   # 終了コード。Agentにとって報酬となるように設計
+        self.test_mode = False
+        self.log_tree = None
+    
+
+    @classmethod
+    def is_own_board(cls, own_board : 'OwnBoard'):
+        if not isinstance(own_board, OwnBoard):
+            TypeError(f"{own_board} is not OwnBoard object")
+        
+        Board.is_board(own_board.common_board)
+
+        if not(own_board.end_label == 0.0 or\
+            own_board.end_label == 0.1 or\
+            own_board.end_label == 1.0 or\
+            own_board.end_label == None):
+            raise ValueError("End label must be 0.0 or 0.1 or 1.0 or None")
+            
         
     def update_board(self) -> None:
         """
@@ -381,24 +407,39 @@ class OwnBoard(Board):
                 self.end_label = 0.0   # 負けなら終了コード0.0
             else:
                 self.end_label = 0.1   # 引き分けなら終了コード0.1
+    
 
-        super(Board, self).__init__(bd=self.common_board, color_switch=False if self.color == Board.BLACK else True)
+    def start_testmode(self):
+        self.test_mode = True
+        self.test_board = self._translate_to_own()
+        self.last_placed = 2
+        self.log_tree = Tree((self.last_placed, self.test_board))
+    
+    def end_testmode(self):
+        self.test_mode = False
+        self.log_tree = None
+        self.test_board = None
+
         
 
     def get_place_to_put(self) -> list:
-        """自分の駒をどこに置けるかを取得
+        """次の駒をどこに置けるかを取得
 
         Returns
         -------
         list
             駒を置ける場所のlist
         """
+
+        if self.test_mode:
+            return Board.get_places_to_put(self.test_board, Board.turn_color(self.last_placed))
+
         self.update_board()   # 盤面の更新
-        return Board.get_places_to_put(self, 1) if self.end_label == None else []   # 終了していなければ置ける場所を取得し返す
+        return Board.get_places_to_put(self.common_board, self.color) if self.end_label == None else []   # 終了していなければ置ける場所を取得し返す
     
 
     def put(self, place : tuple) -> None:
-        """盤面に自分の駒を置く
+        """盤面に次のの駒を置く
 
         Parameters
         ----------
@@ -406,11 +447,40 @@ class OwnBoard(Board):
             駒を置く場所。[0,8)のint二つを要素とする必要がある
 
         """
+
+        if self.test_mode:
+            try:
+                next_board = Board.get_board_after_put(self.test_board, place, Board.turn_color(self.last_placed))
+                self.last_placed = Board.turn_color(self.last_placed)
+                self.log_tree.add((place, self.last_placed, next_board))
+                return True
+            except:
+                return False
+        
         self.update_board()   # 盤面の更新
         if not self.end_label == None:   # 終了していれば駒を置ける場所はない
             raise Exception("You can not put a pices any more")
-        super(OwnBoard, self).put(place, 1)   # 自分視点の盤面に自分の色(1)の駒を置く
         self.common_board.put(place, self.color)   # 自分視点でErrorが出なければ共通の盤面に駒を置く
+    
+
+    def return_log(self, count : int = 1):
+        if not self.test_mode:
+            raise(Exception("You have to star test mode with \"OwnBoard.start_testmode\" when you want to use this"))
+        
+        self.log_tree.back(count)
+        _, self.last_placed, self.test_board = self.log_tree.get_attention_data()
+    
+    def get_child(self):
+        if not self.test_mode:
+            raise(Exception("You have to star test mode with \"OwnBoard.start_testmode\" when you want to use this"))
+        
+        return self.log_tree.get_child()
+    
+    def get_parent(self):
+        if not self.test_mode:
+            raise(Exception("You have to star test mode with \"OwnBoard.start_testmode\" when you want to use this"))
+        
+        return self.log_tree.get_parent()
     
 
     def is_end(self) -> float:
@@ -425,10 +495,17 @@ class OwnBoard(Board):
         return self.end_label   # 盤面の更新によって得られた終了コードを出力
     
 
+    def _translate_to_own(self):
+        board_array = self.common_board.board
+        board_array = (board_array==self.color)*1 + (board_array==Board.turn_color(self.color))*2 + (board_array==Board.EMPTY)*0
+        return Board(bd_array=board_array)
+    
+    
+
     def __str__(self) -> str:
         self.update_board()   # 駒の更新
         if self.end_label == None:   # 終了していない時
-            s = super(OwnBoard, self).__str__()   # 盤面をstrに変換
+            s = self._translate_to_own.__str__()
             s += f"color : {self.color}   |   place to put : {self.get_place_to_put()}"   # 自身の色と置ける場所も出力
         elif self.end_label == 0.0:   # 敗北時
             s = f"----------------------\n\
