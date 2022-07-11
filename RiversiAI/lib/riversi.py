@@ -38,7 +38,7 @@ class Board:
 
 
 
-        if bd_array == None and bd == None:   # 生成時
+        if bd_array is None and bd == None:   # 生成時
             self.board = np.zeros((8,8),dtype=np.int32)              #盤面の作成
             self.board[[3,4],[3,4]] = self.color1     #白い駒の配置
             self.board[[4,3],[3,4]] = self.color2     #黒い駒の配置
@@ -243,6 +243,7 @@ class Board:
         bd.board[place] = color     # 駒を置く
 
         bd.numbers[color] += 1
+        bd.numbers[color] += len(change_places)
         bd.numbers[Board.turn_color(color)] -= len(change_places)  # 駒数の更新
 
         return bd
@@ -323,7 +324,7 @@ class Board:
         actions = Board.get_places_to_put(bd, color)
 
         for action in actions:
-            bd_new = Board.get_board_after_put(bd,color)
+            bd_new = Board.get_board_after_put(bd,action,color)
             if not Board.get_places_to_put(bd_new, Board.turn_color(color)) == []:
                 break
         else:
@@ -498,27 +499,21 @@ class OwnBoard:
     def _translate_to_own(self):
         board_array = self.common_board.board
         board_array = (board_array==self.color)*1 + (board_array==Board.turn_color(self.color))*2 + (board_array==Board.EMPTY)*0
-        return Board(bd_array=board_array)
+        return Board(bd_array=board_array.astype(np.int32))
     
     
 
     def __str__(self) -> str:
         self.update_board()   # 駒の更新
         if self.end_label == None:   # 終了していない時
-            s = self._translate_to_own.__str__()
+            s = str(self._translate_to_own())
             s += f"color : {self.color}   |   place to put : {self.get_place_to_put()}"   # 自身の色と置ける場所も出力
         elif self.end_label == 0.0:   # 敗北時
-            s = f"----------------------\n\
-                   You lose {self.numbers[Board.turn_color(self.color)]:02} - {self.numbers[self.color]:02}   \n\
-                    ----------------------"
+            s = f"----------------------\n\You lose {self.common_board.numbers[Board.turn_color(self.color)]:02} - {self.common_board.numbers[self.color]:02}   \n----------------------"
         elif self.end_label == 1.0:   # 勝利時
-            s = f"---------------------\n\
-                   You won {self.numbers[self.color]:02} - {self.numbers[Board.turn_color(self.color)]:02}   \n\
-                    ---------------------"
+            s = f"---------------------\nYou won {self.common_board.numbers[self.color]:02} - {self.common_board.numbers[Board.turn_color(self.color)]:02}   \n---------------------"
         else:   # 引き分け時
-            s = f"----------------------\n\
-                   You drew {self.numbers[Board.turn_color[self.color]]:02} - {self.numbers[self.color]:02}   \n\
-                    ----------------------"
+            s = f"----------------------\n You drew {self.common_board.numbers[Board.turn_color[self.color]]:02} - {self.common_board.numbers[self.color]:02}   \n----------------------"
         return s
     
 
